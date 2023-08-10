@@ -64,12 +64,11 @@ namespace RzLib
                 int ret = recv(m_socket, recvBuf, 1500, 0);
                 if ( ret == SOCKET_ERROR )
                 {
-                    Log(LogLevel::INFO, "Recv from server : ", recvBuf);
+                    Log(LogLevel::ERR, "Recv from server error, error code : ", WSAGetLastError());
                 }
                 else
                 {
                     Log(LogLevel::INFO, "Recv from server : ", recvBuf);
-
                     memset(recvBuf, 0, ret);
                 }
             }
@@ -78,25 +77,26 @@ namespace RzLib
         thread.detach();
 
         //发送数据、接收数据
-        std::string str;
-        while (std::cin >> str)
+        char sendBuf[512]{0};
+        while ( 1 )
         {
-            if (str == "quit")
+            std::cin.getline(sendBuf, 512);
+            if (strlen(sendBuf) == 0)
+            {
+                continue;
+            }
+
+            if (!strcmp(sendBuf,"quit"))
             {
                 break;
             }
-
-            if ( send(m_socket, &str[0], str.size(), 0) == SOCKET_ERROR )
+            else if( send(m_socket, sendBuf, strlen(sendBuf), 0) == SOCKET_ERROR )
             {
                 Log(LogLevel::ERR, "send buffer to server failed, error code : ", WSAGetLastError());
                 continue;
             }
-            else
-            {
-                //Log(LogLevel::INFO, "send buffer to server success!");
-            }
 
-            str.clear();
+            memset(sendBuf,0,strlen(sendBuf));
         }
 
         return true;
