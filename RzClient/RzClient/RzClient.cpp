@@ -1,5 +1,7 @@
 #include "RzClient.h"
 #include "Core/Log.hpp"
+#include "Core/RzThread.h"
+#include <fstream>
 
 namespace RzLib
 {
@@ -55,48 +57,106 @@ namespace RzLib
             Log(LogLevel::ERR, "Connect error, error code : ", WSAGetLastError());
             return false;
         }
+        Recv();
+        Send();
 
-        std::thread thread([=]() 
+        return true;
+    }
+
+    bool RzClient::Recv()
+    {
+        ScopeThread sThread(std::thread([=]()
         {
-            char recvBuf[1500]{ 0 };
+            std::string strRecv;
+            strRecv.resize(1500);
             while (1)
             {
-                int ret = recv(m_socket, recvBuf, 1500, 0);
-                if ( ret == SOCKET_ERROR )
+                int ret = recv(m_socket, &strRecv[0], 1500, 0);
+                if (ret == SOCKET_ERROR)
                 {
                     Log(LogLevel::ERR, "Recv from server error, error code : ", WSAGetLastError());
+                    return false;
                 }
                 else
                 {
-                    Log(LogLevel::INFO, "Recv from server : ", recvBuf);
-                    memset(recvBuf, 0, ret);
+                    if (strRecv.starts_with("file"))
+                    {
+                        //说明服务器要给我发送文件了
+                        size_t index1 = strRecv.find(" ",0);
+                        size_t index2 = strRecv.find(" ",index1 + static_cast<size_t>(1));
+
+                        std::string strFileSize = strRecv.substr(index1 + static_cast<size_t>(1), index2 - index1 - static_cast<size_t>(1));
+                        int fileSize = 0;
+                        if (!strFileSize.empty())
+                        {
+                            fileSize = stoi(strFileSize);
+                        }
+
+                        // get file name
+                        std::string strFilePath = strRecv.substr(index2+ static_cast<size_t>(1), strRecv.size() - index2 - static_cast<size_t>(1));
+                        size_t idx = strFilePath.rfind("\\");
+                        if(idx != std::string::npos)
+                            strFilePath = strFilePath.substr(idx+2, strFilePath.size() - idx - 2);
+
+                        std::string strFileCache;
+                        while ( fileSize > 0 )
+                        {
+                            memset(&strRecv[0],0,1024);
+                            ret = recv(m_socket, &strRecv[0], 1024, 0);
+
+                            if (ret == SOCKET_ERROR)
+                            {
+                                Log(LogLevel::ERR, "Recv file from server failed!, error code : ", WSAGetLastError());
+                                return false;
+                            }
+
+                            strFileCache += strRecv;
+
+                            fileSize -= 1024;
+                        }
+
+                        std::ofstream ofs(strFilePath, std::ios::out);
+                        if (ofs.is_open())
+                        {
+                            ofs.write(strFileCache.c_str(), strFileCache.size());
+                            ofs.flush();
+                            ofs.close();
+
+                            Log(LogLevel::INFO, "Recv file from server success!\n");
+                        }
+                    }
+                    memset(&strRecv[0], 0, ret);
                 }
             }
-        });
+        }));
 
-        thread.detach();
+        return true;
+    }
 
-        //发送数据、接收数据
-        char sendBuf[512]{0};
-        while ( 1 )
+    bool RzClient::Send()
+    {
+        char readBuf[1500]{0};
+
+        while (1)
         {
-            std::cin.getline(sendBuf, 512);
-            if (strlen(sendBuf) == 0)
+            std::cin.getline(readBuf,1500);
+
+            if (strlen(readBuf) == 0)
             {
                 continue;
             }
 
-            if (!strcmp(sendBuf,"quit"))
+            if (strcmp(readBuf,"exit") == 0)
             {
                 break;
             }
-            else if( send(m_socket, sendBuf, strlen(sendBuf), 0) == SOCKET_ERROR )
+            else if (send(m_socket, readBuf, strlen(readBuf), 0) == SOCKET_ERROR)
             {
                 Log(LogLevel::ERR, "send buffer to server failed, error code : ", WSAGetLastError());
                 continue;
             }
 
-            memset(sendBuf,0,strlen(sendBuf));
+            memset(readBuf, 0, 1500);
         }
 
         return true;

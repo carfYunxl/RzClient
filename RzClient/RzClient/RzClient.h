@@ -15,10 +15,13 @@ namespace RzLib
         RzClient(const std::string& server_ip, uint32_t server_port);
         RzClient(std::string&& server_ip, uint32_t&& server_port);
 
+        ~RzClient();
+
+        bool Recv();
+        bool Send();
+
         bool Init();
         bool Connect();
-
-        ~RzClient();
 
     private:
         std::string m_serverIp;

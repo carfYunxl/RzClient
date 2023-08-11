@@ -21,12 +21,18 @@
     <ClCompile Include="RzClient\RzClient.cpp">
       <Filter>源文件</Filter>
     </ClCompile>
+    <ClCompile Include="Core\RzThread.cpp">
+      <Filter>源文件</Filter>
+    </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="RzClient\RzClient.h">
       <Filter>头文件</Filter>
     </ClInclude>
     <ClInclude Include="Core\Log.hpp">
+      <Filter>头文件</Filter>
+    </ClInclude>
+    <ClInclude Include="Core\RzThread.h">
       <Filter>头文件</Filter>
     </ClInclude>
   </ItemGroup>

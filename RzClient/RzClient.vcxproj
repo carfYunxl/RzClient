@@ -172,10 +172,12 @@
   </ItemDefinitionGroup>
   <ItemGroup>
     <ClCompile Include="Client.cpp" />
+    <ClCompile Include="Core\RzThread.cpp" />
     <ClCompile Include="RzClient\RzClient.cpp" />
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="Core\Log.hpp" />
+    <ClInclude Include="Core\RzThread.h" />
     <ClInclude Include="RzClient\RzClient.h" />
   </ItemGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />
