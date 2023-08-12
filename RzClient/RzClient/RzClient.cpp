@@ -57,6 +57,9 @@ namespace RzLib
             Log(LogLevel::ERR, "Connect error, error code : ", WSAGetLastError());
             return false;
         }
+
+        Log(LogLevel::INFO, "Connect to server success!");
+
         Recv();
         Send();
 
@@ -124,6 +127,10 @@ namespace RzLib
 
                             Log(LogLevel::INFO, "Recv file from server success!\n");
                         }
+                    }
+                    else
+                    {
+                        Log(LogLevel::INFO, "server say : ", strRecv);
                     }
                     memset(&strRecv[0], 0, ret);
                 }

@@ -3,11 +3,11 @@
 
 int main()
 {
-    RzLib::RzClient client("192.168.2.9",8080);
+    RzLib::RzClient client("127.0.0.1", 8080);
 
     if (!client.Init())
     {
-        RzLib::Log(RzLib::LogLevel::ERR,"client init error, error code : ", WSAGetLastError());
+        RzLib::Log(RzLib::LogLevel::ERR, "client init error, error code : ", WSAGetLastError());
         return 0;
     }
 

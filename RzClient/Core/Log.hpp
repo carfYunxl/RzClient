@@ -24,16 +24,16 @@ namespace RzLib
         switch (level)
         {
         case LogLevel::DEBUG:
-            std::cout << blue;
+            std::cout << "[DEBUG]" << black;
             break;
         case LogLevel::INFO:
-            std::cout << red;
+            std::cout << "[INFO]" << blue;
             break;
         case LogLevel::WARN:
-            std::cout << yellow;
+            std::cout << "[WARN]" << yellow;
             break;
         case LogLevel::ERR:
-            std::cout << normal;
+            std::cout << "[ERR]" << normal;
             break;
         }
 
