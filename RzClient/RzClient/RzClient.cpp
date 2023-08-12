@@ -71,11 +71,10 @@ namespace RzLib
         ScopeThread sThread(std::thread([=]()
         {
             std::string strRecv;
+            strRecv.resize(MAX_TCP_PACKAGE_SIZE);
             while (1)
             {
-                strRecv.resize(1500);
-                int ret = recv(m_socket, &strRecv[0], 1500, 0);
-                strRecv.resize(ret);
+                int ret = recv(m_socket, &strRecv[0], MAX_TCP_PACKAGE_SIZE, 0);
                 if (ret == SOCKET_ERROR)
                 {
                     Log(LogLevel::ERR, "Recv from server error, error code : ", WSAGetLastError());
@@ -105,8 +104,8 @@ namespace RzLib
                         std::string strFileCache;
                         while ( fileSize > 0 )
                         {
-                            memset(&strRecv[0],0,1024);
-                            ret = recv(m_socket, &strRecv[0], 1024, 0);
+                            memset(&strRecv[0],0,1500);
+                            ret = recv(m_socket, &strRecv[0], MAX_TCP_PACKAGE_SIZE, 0);
 
                             if (ret == SOCKET_ERROR)
                             {
@@ -114,9 +113,15 @@ namespace RzLib
                                 return false;
                             }
 
-                            strFileCache += strRecv;
+                            int len = strlen(&strRecv[0]);
+                            if (len != MAX_TCP_PACKAGE_SIZE)
+                                strFileCache += strRecv.substr(0,len);
+                            else
+                                strFileCache += strRecv;
 
-                            fileSize -= 1024;
+                            Log(LogLevel::INFO, "recv file success, total = ", strFileCache.size());
+
+                            fileSize -= MAX_TCP_PACKAGE_SIZE;
                         }
 
                         std::ofstream ofs(strFilePath, std::ios::out);
@@ -133,7 +138,7 @@ namespace RzLib
                     {
                         Log(LogLevel::INFO, "server say : ", strRecv);
                     }
-                    memset(&strRecv[0], 0, ret);
+                    memset(&strRecv[0], 0, MAX_TCP_PACKAGE_SIZE);
                 }
             }
         }));

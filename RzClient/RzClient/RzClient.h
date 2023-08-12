@@ -9,6 +9,8 @@
 
 namespace RzLib
 {
+    constexpr size_t MAX_TCP_PACKAGE_SIZE = 1500;
+
     class RzClient
     {
     public:
