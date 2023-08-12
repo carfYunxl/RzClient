@@ -71,10 +71,11 @@ namespace RzLib
         ScopeThread sThread(std::thread([=]()
         {
             std::string strRecv;
-            strRecv.resize(1500);
             while (1)
             {
+                strRecv.resize(1500);
                 int ret = recv(m_socket, &strRecv[0], 1500, 0);
+                strRecv.resize(ret);
                 if (ret == SOCKET_ERROR)
                 {
                     Log(LogLevel::ERR, "Recv from server error, error code : ", WSAGetLastError());
@@ -125,7 +126,7 @@ namespace RzLib
                             ofs.flush();
                             ofs.close();
 
-                            Log(LogLevel::INFO, "Recv file from server success!\n");
+                            Log(LogLevel::INFO, "Recv file from server success!");
                         }
                     }
                     else
