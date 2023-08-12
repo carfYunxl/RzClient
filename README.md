@@ -2,6 +2,5 @@
 A net-working console client use native windows socket API
 
 # protocol
-- **exit**
-  close the client
+- **exit**  close the client
 - **...**
