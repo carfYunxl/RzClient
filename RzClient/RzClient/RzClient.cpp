@@ -1,7 +1,10 @@
-#include "RzClient.h"
+#include "RzClient.hpp"
 #include "Core/Log.hpp"
-#include "Core/RzThread.h"
+#include "Core/RzThread.hpp"
 #include <fstream>
+#include "CMD/CMDParser.hpp"
+#include <memory>
+#include "CMD/CMDType.hpp"
 
 namespace RzLib
 {
@@ -90,62 +93,36 @@ namespace RzLib
                 }
                 else
                 {
-                    if (strRecv.starts_with("file"))
+                    strRecv.resize(strlen(&strRecv[0]));
+
+                    CMDParser parser(strRecv);
+
+                    std::unique_ptr<CMD> pCMD;
+
+                    std::string strCmd = parser.GetCMD();
+
+                    switch (parser.GetCmdType())
                     {
-                        //说明服务器要给我发送文件了
-                        size_t index1 = strRecv.find(" ",0);
-                        size_t index2 = strRecv.find(" ",index1 + static_cast<size_t>(1));
-
-                        std::string strFileSize = strRecv.substr(index1 + static_cast<size_t>(1), index2 - index1 - static_cast<size_t>(1));
-                        int fileSize = 0;
-                        if (!strFileSize.empty())
+                        case CMDType::NONE:
+                            continue;
+                        case CMDType::SINGLE:
                         {
-                            fileSize = stoi(strFileSize);
+                            pCMD = std::make_unique<CMDSingle>(strCmd, this);
+                            break;
                         }
-
-                        // get file name
-                        std::string strFilePath = strRecv.substr(index2+ static_cast<size_t>(1), strRecv.size() - index2 - static_cast<size_t>(1));
-                        size_t idx = strFilePath.rfind("\\");
-                        if(idx != std::string::npos)
-                            strFilePath = strFilePath.substr(idx+2, strFilePath.size() - idx - 2);
-
-                        std::string strFileCache;
-                        while ( fileSize > 0 )
+                        case CMDType::DOUBLE:
                         {
-                            memset(&strRecv[0],0,1500);
-                            ret = recv(m_socket, &strRecv[0], MAX_TCP_PACKAGE_SIZE, 0);
-
-                            if (ret == SOCKET_ERROR)
-                            {
-                                Log(LogLevel::ERR, "Recv file from server failed!, error code : ", WSAGetLastError());
-                                return false;
-                            }
-
-                            size_t len = strlen(&strRecv[0]);
-                            if (len != MAX_TCP_PACKAGE_SIZE)
-                                strFileCache += strRecv.substr(0,len);
-                            else
-                                strFileCache += strRecv;
-
-                            Log(LogLevel::INFO, "recv file success, total = ", strFileCache.size());
-
-                            fileSize -= MAX_TCP_PACKAGE_SIZE;
+                            pCMD = std::make_unique<CMDDouble>(strCmd, this, parser.GetSecInfo());
+                            break;
                         }
-
-                        std::ofstream ofs(strFilePath, std::ios::out);
-                        if (ofs.is_open())
+                        case CMDType::TRIPLE:
                         {
-                            ofs.write(strFileCache.c_str(), strFileCache.size());
-                            ofs.flush();
-                            ofs.close();
-
-                            Log(LogLevel::INFO, "Recv file from server success!");
+                            pCMD = std::make_unique<CMDTriple>(strCmd, this, parser.GetSecInfo(), parser.GetMsg());
+                            break;
                         }
                     }
-                    else
-                    {
-                        Log(LogLevel::INFO, "server say : ", strRecv);
-                    }
+
+                    pCMD->Run();
                     memset(&strRecv[0], 0, MAX_TCP_PACKAGE_SIZE);
                 }
             }
@@ -180,6 +157,52 @@ namespace RzLib
             memset(readBuf, 0, 1500);
         }
 
+        return true;
+    }
+
+    bool RzClient::RecvFile(size_t fileSize, const std::string& filepath)
+    {
+        std::string strFileCache;
+        std::string strRecv;
+        strRecv.resize(MAX_TCP_PACKAGE_SIZE);
+        while (fileSize > 0)
+        {
+            memset(&strRecv[0], 0, MAX_TCP_PACKAGE_SIZE);
+            int ret = recv(m_socket, &strRecv[0], MAX_TCP_PACKAGE_SIZE, 0);
+
+            if (ret == SOCKET_ERROR)
+            {
+                Log(LogLevel::ERR, "Recv file from server failed!, error code : ", WSAGetLastError());
+                return false;
+            }
+
+            size_t len = strlen(&strRecv[0]);
+            if (len != MAX_TCP_PACKAGE_SIZE)
+                strFileCache += strRecv.substr(0, len);
+            else
+                strFileCache += strRecv;
+
+            Log(LogLevel::INFO, "recv file success, total = ", strFileCache.size());
+
+            fileSize -= MAX_TCP_PACKAGE_SIZE;
+        }
+
+        std::ofstream ofs(filepath, std::ios::out);
+        if (ofs.is_open())
+        {
+            ofs.write(strFileCache.c_str(), strFileCache.size());
+            ofs.flush();
+            ofs.close();
+
+            Log(LogLevel::INFO, "Recv file from server success!");
+        }
+
+        return true;
+    }
+
+    bool RzClient::UpdateClient()
+    {
+        Log(LogLevel::INFO, "update client success!");
         return true;
     }
 }

@@ -24,15 +24,30 @@
     <ClCompile Include="Core\RzThread.cpp">
       <Filter>源文件</Filter>
     </ClCompile>
+    <ClCompile Include="CMD\CMDParser.cpp">
+      <Filter>源文件</Filter>
+    </ClCompile>
+    <ClCompile Include="CMD\CMDType.cpp">
+      <Filter>源文件</Filter>
+    </ClCompile>
   </ItemGroup>
   <ItemGroup>
-    <ClInclude Include="RzClient\RzClient.h">
+    <ClInclude Include="RzClient\RzClient.hpp">
       <Filter>头文件</Filter>
     </ClInclude>
     <ClInclude Include="Core\Log.hpp">
       <Filter>头文件</Filter>
     </ClInclude>
-    <ClInclude Include="Core\RzThread.h">
+    <ClInclude Include="Core\RzThread.hpp">
+      <Filter>头文件</Filter>
+    </ClInclude>
+    <ClInclude Include="CMD\CMDParser.hpp">
+      <Filter>头文件</Filter>
+    </ClInclude>
+    <ClInclude Include="Core\Core.hpp">
+      <Filter>头文件</Filter>
+    </ClInclude>
+    <ClInclude Include="CMD\CMDType.hpp">
       <Filter>头文件</Filter>
     </ClInclude>
   </ItemGroup>

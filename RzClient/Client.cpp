@@ -1,4 +1,4 @@
-#include "RzClient/RzClient.h"
+#include "RzClient/RzClient.hpp"
 #include "Core/Log.hpp"
 
 int main()

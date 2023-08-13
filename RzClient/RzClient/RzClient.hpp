@@ -19,15 +19,24 @@ namespace RzLib
 
         ~RzClient();
 
+        const SOCKET GetSocket() const { return m_socket; }
+        const std::string GetVersion() const { return m_Version; }
+
         bool Recv();
         bool Send();
 
         bool Init();
         bool Connect();
 
+        bool RecvFile(size_t fileSize, const std::string& filepath);
+
+        bool UpdateClient();
+
     private:
         std::string m_serverIp;
-        uint32_t m_serverPort;
-        SOCKET m_socket;
+        uint32_t    m_serverPort;
+        SOCKET      m_socket;
+
+        std::string m_Version;
     };
 }

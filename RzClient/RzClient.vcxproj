@@ -172,13 +172,18 @@
   </ItemDefinitionGroup>
   <ItemGroup>
     <ClCompile Include="Client.cpp" />
+    <ClCompile Include="CMD\CMDParser.cpp" />
+    <ClCompile Include="CMD\CMDType.cpp" />
     <ClCompile Include="Core\RzThread.cpp" />
     <ClCompile Include="RzClient\RzClient.cpp" />
   </ItemGroup>
   <ItemGroup>
+    <ClInclude Include="CMD\CMDParser.hpp" />
+    <ClInclude Include="CMD\CMDType.hpp" />
+    <ClInclude Include="Core\Core.hpp" />
     <ClInclude Include="Core\Log.hpp" />
-    <ClInclude Include="Core\RzThread.h" />
-    <ClInclude Include="RzClient\RzClient.h" />
+    <ClInclude Include="Core\RzThread.hpp" />
+    <ClInclude Include="RzClient\RzClient.hpp" />
   </ItemGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />
   <ImportGroup Label="ExtensionTargets">

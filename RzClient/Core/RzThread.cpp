@@ -1,4 +1,4 @@
-#include "RzThread.h"
+#include "RzThread.hpp"
 
 #include <stdexcept>
 
