@@ -30,7 +30,11 @@ namespace RzLib
 
         bool RecvFile(size_t fileSize, const std::string& filepath);
 
+        bool RecvExe(size_t fileSize, const std::string& filepath);
+
         bool UpdateClient();
+
+
 
     private:
         std::string m_serverIp;

@@ -42,6 +42,21 @@ namespace RzLib
 
 			m_Client->RecvFile(fileSize, filepath);
 		}
+		else if (m_Cmd == "update")
+		{
+			int fileSize = 0;
+			if (!m_SecInfo.empty())
+				fileSize = stoi(m_SecInfo);
+
+			std::string filepath = m_message;
+			size_t idx = filepath.rfind("\\");
+			if (idx != std::string::npos)
+			{
+				filepath = filepath.substr(idx + 2, filepath.size() - idx - 2);
+			}
+
+			m_Client->RecvExe(fileSize, filepath);
+		}
 		else
 		{
 			Log(LogLevel::INFO, "server say : ", m_Cmd);

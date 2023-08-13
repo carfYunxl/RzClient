@@ -202,7 +202,17 @@ namespace RzLib
 
     bool RzClient::UpdateClient()
     {
-        Log(LogLevel::INFO, "update client success!");
+        std::string strUpdate("update");
+        if (SOCKET_ERROR == send(m_socket, &strUpdate[0],strUpdate.size(),0))
+        {
+            return false;
+        }
+        return true;
+    }
+
+    //接收服务器发过来的可执行档
+    bool RzClient::RecvExe(size_t fileSize, const std::string& filepath)
+    {
         return true;
     }
 }
