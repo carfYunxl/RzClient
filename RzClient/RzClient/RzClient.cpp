@@ -77,7 +77,15 @@ namespace RzLib
                 int ret = recv(m_socket, &strRecv[0], MAX_TCP_PACKAGE_SIZE, 0);
                 if (ret == SOCKET_ERROR)
                 {
-                    Log(LogLevel::ERR, "Recv from server error, error code : ", WSAGetLastError());
+                    int ret = WSAGetLastError();
+                    if (ret == WSAECONNABORTED)
+                    {
+                        print(" Disconnect from server! ");
+                    }
+                    else
+                    {
+                        Log(LogLevel::ERR, "Recv from server error, error code : ",ret );
+                    }
                     return false;
                 }
                 else
@@ -113,7 +121,7 @@ namespace RzLib
                                 return false;
                             }
 
-                            int len = strlen(&strRecv[0]);
+                            size_t len = strlen(&strRecv[0]);
                             if (len != MAX_TCP_PACKAGE_SIZE)
                                 strFileCache += strRecv.substr(0,len);
                             else
@@ -163,7 +171,7 @@ namespace RzLib
             {
                 break;
             }
-            else if (send(m_socket, readBuf, strlen(readBuf), 0) == SOCKET_ERROR)
+            else if ( send(m_socket, readBuf, int(strlen(readBuf)), 0) == SOCKET_ERROR )
             {
                 Log(LogLevel::ERR, "send buffer to server failed, error code : ", WSAGetLastError());
                 continue;

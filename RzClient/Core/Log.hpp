@@ -4,12 +4,6 @@
 
 namespace RzLib
 {
-    static const char black[] = { 0x1b, '[', '1', ';', '3', '0', 'm', 0 };
-    static const char red[] = { 0x1b, '[', '1', ';', '3', '1', 'm', 0 };
-    static const char yellow[] = { 0x1b, '[', '1', ';', '3', '3', 'm', 0 };
-    static const char blue[] = { 0x1b, '[', '1', ';', '3', '4', 'm', 0 };
-    static const char normal[] = { 0x1b, '[', '0', ';', '3', '9', 'm', 0 };
-
     enum class LogLevel
     {
         DEBUG = 0,
@@ -19,24 +13,30 @@ namespace RzLib
     };
 
     template<typename LogLevel, typename...Args>
-    void Log(LogLevel level, const Args&...args)
+    void Log(LogLevel level, Args...args)
     {
         switch (level)
         {
-        case LogLevel::DEBUG:
-            std::cout << "[DEBUG]" << black;
-            break;
-        case LogLevel::INFO:
-            std::cout << "[INFO]" << blue;
-            break;
-        case LogLevel::WARN:
-            std::cout << "[WARN]" << yellow;
-            break;
-        case LogLevel::ERR:
-            std::cout << "[ERR]" << normal;
-            break;
+            case LogLevel::DEBUG:
+                std::cout << "[DEBUG]";
+                break;
+            case LogLevel::INFO:
+                std::cout << "[INFO]";
+                break;
+            case LogLevel::WARN:
+                std::cout << "[WARN]";
+                break;
+            case LogLevel::ERR:
+                std::cout << "[ERR]";
+                break;
         }
 
+        (std::cout << ... << args) << std::endl;
+    }
+
+    template<typename...Args>
+    void print(Args...args)
+    {
         (std::cout << ... << args) << std::endl;
     }
 }
