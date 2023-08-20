@@ -30,6 +30,9 @@
     <ClCompile Include="CMD\CMDType.cpp">
       <Filter>源文件</Filter>
     </ClCompile>
+    <ClCompile Include="CMD\TcpParser.cpp">
+      <Filter>源文件</Filter>
+    </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="RzClient\RzClient.hpp">
@@ -48,6 +51,9 @@
       <Filter>头文件</Filter>
     </ClInclude>
     <ClInclude Include="CMD\CMDType.hpp">
+      <Filter>头文件</Filter>
+    </ClInclude>
+    <ClInclude Include="CMD\TcpParser.h">
       <Filter>头文件</Filter>
     </ClInclude>
   </ItemGroup>

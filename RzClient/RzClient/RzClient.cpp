@@ -5,6 +5,9 @@
 #include "CMD/CMDParser.hpp"
 #include <memory>
 #include "CMD/CMDType.hpp"
+#include <filesystem>
+#include <array>
+#include "CMD/TcpParser.h"
 
 namespace RzLib
 {
@@ -12,6 +15,7 @@ namespace RzLib
         : m_serverIp(server_ip)
         , m_serverPort(server_port)
         , m_socket(INVALID_SOCKET)
+        , m_updated{false}
     {
 
     }
@@ -69,15 +73,15 @@ namespace RzLib
         return true;
     }
 
+    // 这里收到的都是服务器传过来的数据
     bool RzClient::Recv()
     {
         ScopeThread sThread(std::thread([=]()
         {
-            std::string strRecv;
-            strRecv.resize(MAX_TCP_PACKAGE_SIZE);
+            char readBuf[MAX_TCP_PACKAGE_SIZE]{0};
             while (1)
             {
-                int ret = recv(m_socket, &strRecv[0], MAX_TCP_PACKAGE_SIZE, 0);
+                int ret = recv(m_socket, readBuf, MAX_TCP_PACKAGE_SIZE, 0);
                 if (ret == SOCKET_ERROR)
                 {
                     int ret = WSAGetLastError();
@@ -93,37 +97,24 @@ namespace RzLib
                 }
                 else
                 {
-                    strRecv.resize(strlen(&strRecv[0]));
+                    TcpParser parser(readBuf);
 
-                    CMDParser parser(strRecv);
+                    RECV_CMD cmd = static_cast<RECV_CMD>(parser.GetCMD());
 
-                    std::unique_ptr<CMD> pCMD;
-
-                    std::string strCmd = parser.GetCMD();
-
-                    switch (parser.GetCmdType())
+                    switch (cmd)
                     {
-                        case CMDType::NONE:
-                            continue;
-                        case CMDType::SINGLE:
-                        {
-                            pCMD = std::make_unique<CMDSingle>(strCmd, this);
+                        case RECV_CMD::NORMAL:
+                            Log(LogLevel::INFO, "server say : ", parser.GetMsg());
                             break;
-                        }
-                        case CMDType::DOUBLE:
-                        {
-                            pCMD = std::make_unique<CMDDouble>(strCmd, this, parser.GetSecInfo());
+                        case RECV_CMD::VERSION:
+                            Log(LogLevel::INFO, "server send newest client version to me : ", parser.GetMsg());
                             break;
-                        }
-                        case CMDType::TRIPLE:
-                        {
-                            pCMD = std::make_unique<CMDTriple>(strCmd, this, parser.GetSecInfo(), parser.GetMsg());
+                        case RECV_CMD::UPDATE:
+                            // 进入循环接收文件模式
                             break;
-                        }
                     }
-
-                    pCMD->Run();
-                    memset(&strRecv[0], 0, MAX_TCP_PACKAGE_SIZE);
+                    
+                    memset(readBuf, 0, MAX_TCP_PACKAGE_SIZE);
                 }
             }
         }));
@@ -133,28 +124,34 @@ namespace RzLib
 
     bool RzClient::Send()
     {
-        char readBuf[1500]{0};
+        std::string readBuf;
+        readBuf.resize(64);
 
-        while (1)
+        while (std::cin.getline(&readBuf[0], 64))
         {
-            std::cin.getline(readBuf,1500);
-
-            if (strlen(readBuf) == 0)
+            if (readBuf.empty())
             {
                 continue;
             }
 
-            if (strcmp(readBuf,"exit") == 0)
+            if (memcmp(&readBuf[0],"exit",4) == 0)
             {
                 break;
             }
-            else if ( send(m_socket, readBuf, int(strlen(readBuf)), 0) == SOCKET_ERROR )
+
+            int len = strlen(readBuf.c_str());
+
+            readBuf.insert(readBuf.begin(), (len >> 8) & 0xFF);
+            readBuf.insert(readBuf.begin(), len & 0xFF);
+            readBuf.insert(readBuf.begin(), 0xF1);
+
+            if ( send(m_socket, &readBuf[0], len+3, 0) == SOCKET_ERROR)
             {
                 Log(LogLevel::ERR, "send buffer to server failed, error code : ", WSAGetLastError());
                 continue;
             }
 
-            memset(readBuf, 0, 1500);
+            memset(&readBuf[0], 0, 64);
         }
 
         return true;
@@ -202,6 +199,7 @@ namespace RzLib
 
     bool RzClient::UpdateClient()
     {
+        // 客户端告诉服务器，我需要更新客户端，于是服务器开始准备将新的客户端文件发过来
         std::string strUpdate("update");
         if (SOCKET_ERROR == send(m_socket, &strUpdate[0],strUpdate.size(),0))
         {
@@ -213,6 +211,19 @@ namespace RzLib
     //接收服务器发过来的可执行档
     bool RzClient::RecvExe(size_t fileSize, const std::string& filepath)
     {
+        std::filesystem::path path = std::filesystem::current_path();
+        path = path.parent_path();
+        path /= "binClient";
+
+        if (!std::filesystem::exists(path))
+        {
+            std::filesystem::create_directory(path);
+        }
+
+        Log(LogLevel::INFO, "bin path ", path.string());
+
+        RecvFile(fileSize, filepath);
+
         return true;
     }
 }

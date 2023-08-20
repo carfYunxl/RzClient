@@ -3,39 +3,11 @@
 
 namespace RzLib
 {
-
-	//------------------------------------------------------------
-	// CMDParserBase implementation								//
-	//------------------------------------------------------------
-	CMDParserBase::CMDParserBase(const std::string& CMD, char SPLIT)
-	{
-		Parser(CMD, SPLIT);
-	}
-
-	void CMDParserBase::Parser(const std::string& CMD, char SPLIT)
-	{
-		if (CMD.empty())
-		{
-			return;
-		}
-
-		std::string strCmd = CMD;
-
-		strCmd.resize(strlen(&strCmd[0]));
-		m_CMD = strCmd;
-		return;
-	}
-
-	void CMDParserBase::SetCMD(const std::string& CMD, char SPLIT)
-	{
-		this->Parser(CMD,SPLIT);
-	}
 	//------------------------------------------------------------
 	// CMDParser implementation									//
 	//------------------------------------------------------------
 
 	CMDParser::CMDParser(const std::string& CMD, char SPLIT)
-		: CMDParserBase(CMD,SPLIT)
 	{
 		Parser(CMD, SPLIT);
 	}

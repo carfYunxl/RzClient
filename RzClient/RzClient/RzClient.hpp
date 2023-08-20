@@ -34,7 +34,8 @@ namespace RzLib
 
         bool UpdateClient();
 
-
+        void Update(bool update) { m_updated = update; }
+        bool IsUpdating() { return m_updated; }
 
     private:
         std::string m_serverIp;
@@ -42,5 +43,6 @@ namespace RzLib
         SOCKET      m_socket;
 
         std::string m_Version;
+        bool        m_updated;
     };
 }

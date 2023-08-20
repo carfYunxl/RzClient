@@ -22,22 +22,7 @@ namespace RzLib
         TRIPLE
     };
 
-    class CMDParserBase
-    {
-    public:
-        CMDParserBase(const std::string& CMD, char SPLIT = ' ');
-        virtual ~CMDParserBase() {}
-
-        virtual void SetCMD(const std::string& CMD, char SPLIT = ' ');
-        std::string  GetCMD() const { return m_CMD; }
-
-    protected:
-        virtual void Parser(const std::string& CMD, char SPLIT = ' ');
-    protected:
-        std::string m_CMD;
-    };
-
-    class CMDParser : public CMDParserBase
+    class CMDParser
     {
     public:
         CMDParser(const std::string& CMD, char SPLIT = ' ');
@@ -47,12 +32,13 @@ namespace RzLib
         std::string GetMsg()        const { return m_message; }
         CMDType     GetCmdType()    const { return m_cmdType; }
 
-        virtual void SetCMD(const std::string& CMD, char SPLIT = ' ') override;
+        void SetCMD(const std::string& CMD, char SPLIT = ' ');
 
     private:
-        virtual void Parser(const std::string& CMD, char SPLIT = ' ') override;
+        void Parser(const std::string& CMD, char SPLIT = ' ');
         bool IsAllDigits(const std::string& digits);
     private:
+        std::string m_CMD;
         std::string m_SecInfo;
         std::string m_message;
         CMDType     m_cmdType{ CMDType::NONE };
