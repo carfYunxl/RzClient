@@ -1,15 +1,35 @@
 #pragma once
 
+#define FMT_HEADER_ONLY
+
+#include "core.h"
+#include "format.h"
+#include "color.h"
+
 #include <iostream>
 
 namespace RzLib
 {
     enum class LogLevel
     {
-        DEBUG = 0,
-        INFO,
+        INFO = 0,
         WARN,
         ERR
+    };
+
+    template<typename T, char SEPERATOR>
+    class AddSeperator
+    {
+    public:
+        AddSeperator(const T& ref) : m_ref(ref) {}
+
+        friend std::ostream& operator<<(std::ostream& out, const AddSeperator& sep)
+        {
+            out << sep.m_ref << SEPERATOR;
+            return out;
+        }
+    private:
+        const T& m_ref;
     };
 
     template<typename LogLevel, typename...Args>
@@ -17,27 +37,18 @@ namespace RzLib
     {
         switch (level)
         {
-            case LogLevel::DEBUG:
-                std::cout << "[DEBUG]";
-                break;
-            case LogLevel::INFO:
-                std::cout << "[INFO]";
-                break;
-            case LogLevel::WARN:
-                std::cout << "[WARN]";
-                break;
-            case LogLevel::ERR:
-                std::cout << "[ERR]";
-                break;
+        case LogLevel::INFO:
+            fmt::print(fg(fmt::color::steel_blue), "[INFO] ");
+            break;
+        case LogLevel::WARN:
+            fmt::print(fg(fmt::color::yellow), "[WARN] ");
+            break;
+        case LogLevel::ERR:
+            fmt::print(fg(fmt::color::red), "[ERROR] ");
+            break;
         }
 
-        (std::cout << ... << args) << std::endl;
-    }
-
-    template<typename...Args>
-    void print(Args...args)
-    {
-        (std::cout << ... << args) << std::endl;
+        (std::cout << ... << AddSeperator<Args, ' '>(args)) << std::endl;
     }
 }
 

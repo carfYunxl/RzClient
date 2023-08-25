@@ -7,9 +7,13 @@
 #include <thread>
 #include <string>
 
+#include <filesystem>
+
 namespace RzLib
 {
     constexpr size_t MAX_TCP_PACKAGE_SIZE = 1500;
+
+    constexpr size_t CLIENT_VERSION = 0x0101;
 
     class RzClient
     {
@@ -38,11 +42,18 @@ namespace RzLib
         bool IsUpdating() { return m_updated; }
 
     private:
-        std::string m_serverIp;
-        uint32_t    m_serverPort;
-        SOCKET      m_socket;
+        void CreateDir();
 
-        std::string m_Version;
-        bool        m_updated;
+    private:
+        std::string             m_serverIp;
+        uint32_t                m_serverPort;
+        SOCKET                  m_socket;
+
+        std::string             m_Version;
+        bool                    m_updated;
+
+        std::filesystem::path   m_pCurPath;
+        std::filesystem::path   m_pRootPath;
+        std::string             m_fCurContent;
     };
 }

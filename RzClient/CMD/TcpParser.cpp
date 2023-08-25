@@ -1,31 +1,65 @@
 #include "TcpParser.h"
 #include "Core/Log.hpp"
+#include <algorithm>
+#include <numeric>
 
 namespace RzLib
 {
-    TcpParser::TcpParser(const char* cmd)
-        : m_Cmd(0)
-        , m_strMsg("")
+    TcpParser::TcpParser(const char* cmd, size_t size)
+        : m_size(size)
     {
         Parser(cmd);
     }
 
-    void TcpParser::Parser(const char* cmd)
+    void TcpParser::Parser(const char* arrCmd)
     {
-        m_Cmd = cmd[0];
+        if (m_size == 0)
+            return;
 
-        int size = cmd[1] | (cmd[2] << 8);
+        std::string strRead;
+        strRead.resize(m_size);
 
-        if (size > 0)
+        memcpy(&strRead[0], arrCmd, m_size);
+
+        unsigned char cmd = static_cast<unsigned char>(strRead[0]);
+        std::string strMsg;
+        while ( IsCmd(cmd) )
         {
-            if (m_Cmd == 0xF2)  // version
+            int nMsgSize = strRead[1] | (strRead[2] << 8);
+
+            if (nMsgSize != 0)
             {
-                m_strMsg = std::to_string(cmd[3] | cmd[4] << 8);
+                strMsg.resize(nMsgSize);
+                memcpy(&strMsg[0], &strRead[3], nMsgSize);
             }
-            else
-            {
-                memcpy(&m_strMsg[0], &cmd[3], size);
-            }
+            
+            m_Info.emplace_back(cmd, strMsg);
+
+            strMsg.clear();         
+
+            strRead = strRead.substr( 3 + nMsgSize, strRead.size() - 3 - nMsgSize);
+
+            if (strRead.empty())
+                break;
+
+            cmd = static_cast<unsigned char>(strRead[0]);
         }
+    }
+
+    const bool TcpParser::IsCmd(unsigned char ch) const
+    {
+        if (
+            ch == 0xF1 ||
+            ch == 0xF2 ||
+            ch == 0xF4 ||
+            ch == 0xF5 ||
+            ch == 0xF6 ||
+            ch == 0xF7
+            )
+        {
+            return true;
+        }
+
+        return false;
     }
 }

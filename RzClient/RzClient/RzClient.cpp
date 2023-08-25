@@ -5,7 +5,6 @@
 #include "CMD/CMDParser.hpp"
 #include <memory>
 #include "CMD/CMDType.hpp"
-#include <filesystem>
 #include <array>
 #include "CMD/TcpParser.h"
 
@@ -17,13 +16,15 @@ namespace RzLib
         , m_socket(INVALID_SOCKET)
         , m_updated{false}
     {
-
+        CreateDir();
     }
     RzClient::RzClient(std::string&& server_ip, uint32_t&& server_port)
         : m_serverIp(std::move(server_ip))
         , m_serverPort(std::move(server_port))
         , m_socket(INVALID_SOCKET)
+        , m_updated{ false }
     {
+        CreateDir();
     }
 
     RzClient::~RzClient()
@@ -61,7 +62,15 @@ namespace RzLib
 
         if ( connect(m_socket, (SOCKADDR*)&serverAddr, sizeof(serverAddr)) == SOCKET_ERROR )
         {
-            Log(LogLevel::ERR, "Connect error, error code : ", WSAGetLastError());
+            int ret = WSAGetLastError();
+            if (ret == WSAECONNREFUSED)
+            {
+                Log(LogLevel::ERR, " erver refused connect request! ");
+            }
+            else
+            {
+                Log(LogLevel::ERR, "Connect error, error code : ", WSAGetLastError());
+            }
             return false;
         }
 
@@ -87,7 +96,11 @@ namespace RzLib
                     int ret = WSAGetLastError();
                     if (ret == WSAECONNABORTED)
                     {
-                        print(" Disconnect from server! ");
+                        Log(LogLevel::ERR, " Disconnect from server! ");
+                    }
+                    else if (ret == WSAECONNRESET)
+                    {
+                        Log(LogLevel::ERR, " server closed, connected aborted! ");
                     }
                     else
                     {
@@ -97,22 +110,80 @@ namespace RzLib
                 }
                 else
                 {
-                    TcpParser parser(readBuf);
+                    TcpParser parser(readBuf, ret);
 
-                    RECV_CMD cmd = static_cast<RECV_CMD>(parser.GetCMD());
+                    std::vector<RecvInfo> info = parser.GetInfo();
+                    std::string msg;
 
-                    switch (cmd)
+                    for (size_t i = 0;i < info.size(); ++i)
                     {
-                        case RECV_CMD::NORMAL:
-                            Log(LogLevel::INFO, "server say : ", parser.GetMsg());
-                            break;
-                        case RECV_CMD::VERSION:
-                            Log(LogLevel::INFO, "server send newest client version to me : ", parser.GetMsg());
-                            break;
-                        case RECV_CMD::UPDATE:
-                            // 进入循环接收文件模式
-                            break;
+                        RECV_CMD cCmd = static_cast<RECV_CMD>(info.at(i).cmd);
+                        msg = info.at(i).msg;
+
+                        switch (cCmd)
+                        {
+                            case RECV_CMD::NORMAL:
+                            {
+                                Log(LogLevel::ERR, "server say : ", msg);
+                                break;
+                            }
+                            case RECV_CMD::VERSION:
+                            {
+                                Log(LogLevel::INFO, "server send newest client version to me : ", msg);
+                                size_t newVer = (msg[0] << 8) | msg[1];
+                                if (newVer != CLIENT_VERSION)
+                                {
+                                    UpdateClient();
+                                }
+                                break;
+                            }
+                            case RECV_CMD::FILE_HEADER:
+                            {
+                                m_pCurPath.clear();
+
+                                Log(LogLevel::ERR, "server say : ", msg);
+
+                                memset(readBuf, 0, MAX_TCP_PACKAGE_SIZE);
+
+                                m_pCurPath = m_pRootPath / msg;
+
+                                if (!m_pCurPath.has_extension())
+                                {
+                                    //是目录
+                                    std::filesystem::create_directory(m_pCurPath);
+                                    Log(LogLevel::WARN, "接收到目录 ： ", m_pCurPath);
+                                }
+                                else
+                                {
+                                    m_fCurContent.clear();
+                                    Log(LogLevel::WARN, "接收到文件 ： ", m_pCurPath);
+                                }
+                                break;
+                            }
+                            case RECV_CMD::FILE_PACKET:
+                            {
+                                m_fCurContent += msg;
+
+                                Log(LogLevel::WARN, "接收到文件包：", "现在的文件内容是：", m_fCurContent);
+                                break;
+                            }
+                            case RECV_CMD::File_TAIL:
+                            {
+                                Log(LogLevel::WARN, "接收到文件包尾, 写入文件：", m_pCurPath);
+                                std::ofstream out(m_pCurPath, std::ios::out);
+                                if (out.is_open())
+                                {
+                                    out.write(m_fCurContent.c_str(), m_fCurContent.size());
+                                    out.flush();
+                                    out.close();
+                                }
+
+                                m_fCurContent.clear();
+                                break;
+                            }
+                        }
                     }
+
                     
                     memset(readBuf, 0, MAX_TCP_PACKAGE_SIZE);
                 }
@@ -139,13 +210,13 @@ namespace RzLib
                 break;
             }
 
-            int len = strlen(readBuf.c_str());
+            size_t len = strlen(readBuf.c_str());
 
-            readBuf.insert(readBuf.begin(), (len >> 8) & 0xFF);
-            readBuf.insert(readBuf.begin(), len & 0xFF);
-            readBuf.insert(readBuf.begin(), 0xF1);
+            readBuf.insert(readBuf.begin(), static_cast<char>((len >> 8) & 0xFF));
+            readBuf.insert(readBuf.begin(), static_cast<char>(len & 0xFF));
+            readBuf.insert(readBuf.begin(), static_cast<char>(0xF1));
 
-            if ( send(m_socket, &readBuf[0], len+3, 0) == SOCKET_ERROR)
+            if ( send(m_socket, &readBuf[0], static_cast<int>(len+3), 0) == SOCKET_ERROR)
             {
                 Log(LogLevel::ERR, "send buffer to server failed, error code : ", WSAGetLastError());
                 continue;
@@ -200,8 +271,11 @@ namespace RzLib
     bool RzClient::UpdateClient()
     {
         // 客户端告诉服务器，我需要更新客户端，于是服务器开始准备将新的客户端文件发过来
-        std::string strUpdate("update");
-        if (SOCKET_ERROR == send(m_socket, &strUpdate[0],strUpdate.size(),0))
+        std::string strUpdate;
+        strUpdate.append(1, static_cast<char>(0xF3));
+        strUpdate.append(1, static_cast<char>(0x00));
+        strUpdate.append(1, static_cast<char>(0x00));
+        if (SOCKET_ERROR == send(m_socket, strUpdate.c_str(), static_cast<int>(strUpdate.size()), 0))
         {
             return false;
         }
@@ -225,5 +299,15 @@ namespace RzLib
         RecvFile(fileSize, filepath);
 
         return true;
+    }
+
+    void RzClient::CreateDir()
+    {
+        m_pRootPath = std::filesystem::current_path() / "Tmp";
+
+        if (!std::filesystem::exists(m_pRootPath))
+        {
+            std::filesystem::create_directory(m_pRootPath);
+        }
     }
 }
